@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - '3000:3000'
+      - '5173:5173'
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DB_ADAPTER=postgres
+      - DATABASE_URL=postgresql://oauth2user:oauth2pass@db:5432/oauth2_minimalist
+      - JWT_SECRET=dev-secret-change-in-production
+      - JWT_ACCESS_EXPIRY=15m
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=http://localhost:3000/auth/google/callback
+      - CLIENT_URL=http://localhost:5173
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./server:/app/server
+      - ./client:/app/client
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=oauth2_minimalist
+      - POSTGRES_USER=oauth2user
+      - POSTGRES_PASSWORD=oauth2pass
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U oauth2user -d oauth2_minimalist']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
